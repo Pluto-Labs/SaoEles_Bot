@@ -52,7 +52,9 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
   console.log("reaction.emoji.name = ", reaction.emoji.name)
 
-  if (reaction.partial && reaction.emoji.name === "manitos") {
+  if (reaction.emoji.name === "manitos") {
+
+    console.log("AQUI")
 
     try {
 
@@ -80,6 +82,6 @@ client.on('messageReactionAdd', async (reaction, user) => {
     
   }
 
-});
+})
 
 client.login(process.env.BOT_TOKEN)
