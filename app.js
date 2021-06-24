@@ -50,6 +50,8 @@ client.on('message', msg => {
 
 client.on('messageReactionAdd', async (reaction, user) => {
 
+  console.log("reaction.emoji.name = ", reaction.emoji.name)
+
   if (reaction.partial && reaction.emoji.name === "manitos") {
 
     try {
