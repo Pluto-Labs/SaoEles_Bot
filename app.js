@@ -50,8 +50,6 @@ client.on('message', msg => {
 
 client.on('messageReactionAdd', async (reaction, user) => {
 
-  console.log("reaction.emoji.name = ", reaction.emoji.name)
-
   if (reaction.emoji.name === "manitos") {
 
     console.log("AQUI")
@@ -80,6 +78,15 @@ client.on('messageReactionAdd', async (reaction, user) => {
       return;
     }
     
+  } else if(reaction.emoji.name === '❌' && reaction.count >= 5) {
+    const [attachments] = reaction.message.attachments
+    fs.unlink(`${dir}/${attachments[1].name}`, error => {
+      if(error) {
+        console.log(error)
+      } else {
+        reaction.message.edit("Arquivo removido :broken_heart:")
+      }
+    })
   }
 
 })
