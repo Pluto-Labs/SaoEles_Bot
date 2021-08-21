@@ -100,32 +100,35 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
     const [attachments] = reaction.message.attachments
 
-    const data = {
-      imageUrl: attachments[1].attachment,
-      imageName: attachments[1].name
+    if (attachments) {
+      const data = {
+        imageUrl: attachments[1].attachment,
+        imageName: attachments[1].name
+      }
+
+      axios.post(VM_URL, data)
+        .then((response) => {
+          const { data } = response
+
+          if (data.error) {
+            console.error(data.message)
+            return
+          }
+
+          // if (!fs.existsSync(`${convertDir}/${data.imageName}`)) {
+          //   download(VM_URL + data.imageName, `${convertDir}/${data.imageName}`)
+          // }
+
+          setTimeout(function () {
+            // console.log('${convertDir}/${data.imageName}: ', `${convertDir}/${data.imageName}`)
+            // const attachment = new MessageAttachment(`${convertDir}/${data.imageName}`)
+            reaction.message.channel.send(VM_URL + data.imageName)
+          }, 1500)
+        }).catch((error) => {
+          console.error('Something went wrong when sending image: ', error);
+        })
+
     }
-
-    axios.post(VM_URL, data)
-      .then((response) => {
-        const { data } = response
-
-        if (data.error) {
-          console.error(data.message)
-          return
-        }
-
-        // if (!fs.existsSync(`${convertDir}/${data.imageName}`)) {
-        //   download(VM_URL + data.imageName, `${convertDir}/${data.imageName}`)
-        // }
-
-        setTimeout(function(){
-          // console.log('${convertDir}/${data.imageName}: ', `${convertDir}/${data.imageName}`)
-          // const attachment = new MessageAttachment(`${convertDir}/${data.imageName}`)
-          reaction.message.channel.send(VM_URL+data.imageName)
-      }, 1500)
-      }).catch((error) => {
-        console.error('Something went wrong when sending image: ', error);
-      })
 
   }
 
