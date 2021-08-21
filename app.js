@@ -96,7 +96,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
         reaction.message.edit("Arquivo removido :broken_heart:")
       }
     })
-  } else if (reaction.emoji.name === "distorted_hernans") {
+  } else if (reaction.emoji.name === "distorted_hernans" && reaction?.count <= 1) {
 
     const [attachments] = reaction.message.attachments
 
@@ -115,15 +115,9 @@ client.on('messageReactionAdd', async (reaction, user) => {
             return
           }
 
-          // if (!fs.existsSync(`${convertDir}/${data.imageName}`)) {
-          //   download(VM_URL + data.imageName, `${convertDir}/${data.imageName}`)
-          // }
-
           setTimeout(function () {
-            // console.log('${convertDir}/${data.imageName}: ', `${convertDir}/${data.imageName}`)
-            // const attachment = new MessageAttachment(`${convertDir}/${data.imageName}`)
             reaction.message.channel.send(VM_URL + data.imageName)
-          }, 1500)
+          }, 1800)
         }).catch((error) => {
           console.error('Something went wrong when sending image: ', error);
         })
