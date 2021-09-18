@@ -1,131 +1,186 @@
-var { v4: uuidv4 } = require('uuid');
-var dotenv = require('dotenv')
-var { Client, MessageAttachment, Message } = require('discord.js')
-var randomFile = require('select-random-file')
-var https = require('https')
-var http = require('http')
-var fs = require('fs')
-var path = require('path')
-var axios = require('axios')
-var formData = require('form-data')
+import { Client, MessageAttachment, Message, Channel } from 'discord.js'
+import randomFile from 'select-random-file'
+import { v4 } from 'uuid'
+import formData from 'form-data'
+import dotenv from 'dotenv'
+import axios from 'axios'
+import https from 'https'
+import http from 'http'
+import path from 'path'
+import fs from 'fs'
 
 dotenv.config()
 
-const client = new Client({ partials: ['MESSAGE', 'CHANNEL', 'REACTION'] })
+const { BOT_TOKEN, VM_URL, MEDIA_DIR } = process.env
 
-const VM_URL = 'http://68.183.157.185:3000/convert/'
+const emojis = {
+  ok: '✅',
+  error: '⚠',
+  deleted: '🗑',
+  delete_action: '❌',
+  robot_face: '🤖',
+}
 
-const download = function (url, dest, msg = null) {
-  var file = fs.createWriteStream(dest)
+const client = new Client({
+  partials: [
+    'MESSAGE',
+    'CHANNEL',
+    'REACTION',
+  ]
+})
 
-  const call = url.includes('https') ? https : http
-
-  var request = call.get(url, function (response) {
-    response.pipe(file);
-    file.on('finish', function () {
-      file.close()
-      if (msg)
-        msg.channel.send("Foto adicionada :white_check_mark:")
-    })
-  }).on('error', function (err) {
-    if (msg) {
-      msg.channel.send("Não foi possivel adicionar essa foto :x:")
+const deleteAttachment = async (attachment, removeDir, message = null) => {
+  const { name } = attachment
+  fs.unlink(`${removeDir}/${name}`, error => {
+    if (!error && message) {
+      message.react(emojis.deleted)
+    } else if (error) {
+      if (message) message.react(emojis.error)
+      console.error('[ERROR]', error)
     }
-    fs.unlink(dest)
   })
 }
 
-const dir = './src/images'
-const convertDir = './src/convertImages'
+const downloadAttachment = async (attachment, downloadDir, message = null) => {
 
-client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`)
-})
+  try {
+    const { name, url: imageUrl } = attachment
 
-client.on('message', msg => {
+    const ext = path.extname(name)
+    const uuid = v4()
 
-  if (msg.content.toUpperCase() === 'SÃO ELES') {
-    randomFile(dir, (err, file) => {
-      const attachment = new MessageAttachment(`./src/images/${file}`)
-      msg.channel.send(attachment)
+    const newName = `${uuid}${ext}`
+    const imageDir = `${downloadDir}/${newName}`
+
+    const request = await https.get(imageUrl, response => {
+      const file = fs.createWriteStream(imageDir)
+      response.pipe(file)
+      file.on('finish', () => {
+        file.close()
+        if (message) message.react(emojis.ok)
+      })
     })
-  } else if (msg.content === "!manitos") {
-    msg.attachments.forEach(a => {
-      const ext = path.extname(a.name)
-      const name = uuidv4()
-      download(a.url, `${dir}/${name}${ext}`, msg)
-    })
+
+  } catch (error) {
+    if (message) message.react(emojis.error)
+    console.error('[ERROR]', error)
   }
 
-})
+}
 
-client.on('messageReactionAdd', async (reaction, user) => {
+const distortAttachment = async ({ attachment, name }, message = null) => {
+  try {
 
-  if (reaction.emoji.name === "manitos") {
-
-    try {
-
-      const { id } = reaction.message
-
-      reaction.message.channel.messages.fetch(id)
-        .then(message => {
-          const { attachments } = message
-
-          attachments.forEach(a => {
-            const ext = path.extname(a.name)
-            const name = uuidv4()
-            download(a.url, `${dir}/${name}${ext}`)
-          })
-
-        })
-        .catch(console.error)
-
-      reaction.message.react('✅')
-    } catch (error) {
-      reaction.message.react('❌')
-      console.error('Something went wrong when fetching the message: ', error);
-      return;
+    const data = {
+      imageUrl: attachment,
+      imageName: name
     }
 
-  } else if (reaction.emoji.name === '❌' && reaction.count >= 5) {
-    const [attachments] = reaction.message.attachments
-    fs.unlink(`${dir}/${attachments[1].name}`, error => {
-      if (error) {
-        console.log(error)
-      } else {
-        reaction.message.edit("Arquivo removido :broken_heart:")
-      }
-    })
-  } else if (reaction.emoji.name === "distorted_hernans" && reaction?.count <= 1) {
+    if (message) message.react(emojis.robot_face)
 
-    const [attachments] = reaction.message.attachments
+    await axios.post(VM_URL, data)
+      .then(async (response) => {
+        console.log("RESPONSE", response)
+        const { error, message: responseMessage, imageName } = await response.data
 
-    if (attachments) {
-      const data = {
-        imageUrl: attachments[1].attachment,
-        imageName: attachments[1].name
-      }
+        if (error) {
+          if (message) message.react(emojis.error)
+          console.error('[ERROR] - ', responseMessage, error)
+          return
+        }
 
-      axios.post(VM_URL, data)
-        .then((response) => {
-          const { data } = response
-
-          if (data.error) {
-            console.error(data.message)
-            return
+        setTimeout(function () {
+          if (message) {
+            message.channel.send(`${VM_URL}${imageName}`)
           }
+        }, 1800)
+      })
 
-          setTimeout(function () {
-            reaction.message.channel.send(VM_URL + data.imageName)
-          }, 1800)
-        }).catch((error) => {
-          console.error('Something went wrong when sending image: ', error);
+  } catch (error) {
+    console.error('[ERROR] - ', error)
+  }
+}
+
+try {
+
+  client.login(BOT_TOKEN)
+
+  client.on('ready', () => {
+    console.log(`Logged in as ${client.user.tag}!`)
+  })
+
+  client.on('message', message => {
+    const { content, channel, attachments } = message
+
+    switch (content.toUpperCase()) {
+      case 'SÃO ELES':
+        randomFile(MEDIA_DIR, (error, file) => {
+          const attachment = new MessageAttachment(`${MEDIA_DIR}/${file}`)
+          channel.send(attachment)
         })
+        break
+      
+      case '!MANITOS HELP':
+        message.channel.send(`
+***Help***
+- Para **adicionar** uma imagem/vídeo ao bot basta reagir com o emote :manitos:
+- Para **distorcer** uma imagem basta reagir com o emote :distorted_hernans:
+- Para **remover** uma imagem/vídeo do bot basta reagir com :x: (necessário 5 pessoas)
 
+***Reações do Bot***
+:white_check_mark: = imagem/vídeo adicionado ao bot com sucesso
+:warning: = houve um erro ao realizar algum processo
+:wastebasket: = imagem/vídeo removido do bot com sucesso
+:robot: = iniciado o processo de distorcer a imagem`)
+        break
+
+      default:
+        break;
+    }
+  })
+
+  client.on('messageReactionAdd', async reaction => {
+
+    const { emoji, message, count } = reaction
+
+    switch (emoji.name) {
+      case 'manitos':
+        const { id: messageId, channel } = message
+        channel.messages.fetch(messageId)
+          .then(channelMessage => {
+            const { attachments } = channelMessage
+            attachments.forEach(async (attachment) => {
+              downloadAttachment(attachment, MEDIA_DIR, message)
+            })
+          })
+          .catch(console.error)
+
+        break
+
+      case emojis.delete_action:
+        if (count && count >= 1) {
+          const { attachments } = message
+          attachments.forEach(attachment => {
+            deleteAttachment(attachment, MEDIA_DIR, message)
+          })
+        }
+        break
+
+      case 'distorted_hernans':
+        if (count && count <= 1) {
+          const { attachments } = message
+          attachments.forEach(attachment => {
+            distortAttachment(attachment, message)
+          })
+        }
+        break
+
+      default:
+        break
     }
 
-  }
+  })
 
-})
-
-client.login(process.env.BOT_TOKEN)
+} catch (error) {
+  console.error('[ERROR] - ', error)
+}
