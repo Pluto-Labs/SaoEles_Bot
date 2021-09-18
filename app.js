@@ -1,13 +1,13 @@
-import { Client, MessageAttachment, Message, Channel } from 'discord.js'
-import randomFile from 'select-random-file'
-import { v4 } from 'uuid'
-import formData from 'form-data'
-import dotenv from 'dotenv'
-import axios from 'axios'
-import https from 'https'
-import http from 'http'
-import path from 'path'
-import fs from 'fs'
+const { Client, MessageAttachment, Message, Channel } = require('discord.js')
+const randomFile = require('select-random-file')
+const { v4 } = require('uuid')
+const formData = require('form-data')
+const dotenv = require('dotenv')
+const axios = require('axios')
+const https = require('https')
+const http = require('http')
+const path = require('path')
+const fs = require('fs')
 
 dotenv.config()
 
@@ -119,7 +119,7 @@ try {
           channel.send(attachment)
         })
         break
-      
+
       case '!MANITOS HELP':
         message.channel.send(`
 ***Help***
