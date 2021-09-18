@@ -11,7 +11,7 @@ const fs = require('fs')
 
 dotenv.config()
 
-const { BOT_TOKEN, VM_URL, MEDIA_DIR } = process.env
+const { BOT_TOKEN, VM_URL, MEDIA_DIR, CONVERTED_MEDIA_DIR } = process.env
 
 const emojis = {
   ok: '✅',
@@ -41,6 +41,23 @@ const deleteAttachment = async (attachment, removeDir, message = null) => {
   })
 }
 
+const downloadConverted = async (convertedName, downloadDir, message = null) => {
+
+  try {
+    const request = await http.get(`${VM_URL}${convertedName}`, async response => {
+      const file = await fs.createWriteStream(`${downloadDir}/${convertedName}`)
+      await response.pipe(file)
+      await file.on('finish', () => {
+        file.close()
+        if (message) sendAttachment(`${CONVERTED_MEDIA_DIR}/${convertedName}`, message)
+      })
+    })
+  } catch (error) {
+    console.error("[ERROR] - ", error)    
+  }
+
+}
+
 const downloadAttachment = async (attachment, downloadDir, message = null) => {
 
   try {
@@ -68,8 +85,21 @@ const downloadAttachment = async (attachment, downloadDir, message = null) => {
 
 }
 
+const sendAttachment = async (attachmentDir, message) => {
+  const attachment = new MessageAttachment(attachmentDir)
+  message.channel.send(attachment)
+}
+
 const distortAttachment = async ({ attachment, name }, message = null) => {
   try {
+
+    const splitName = name.split('.')
+    const convertedName = `${splitName[0]}_converted.${splitName[1]}`
+
+    if (fs.existsSync(`${CONVERTED_MEDIA_DIR}/${convertedName}`)) {
+      sendAttachment(`${CONVERTED_MEDIA_DIR}/${convertedName}`, message)
+      return
+    }
 
     const data = {
       imageUrl: attachment,
@@ -80,7 +110,6 @@ const distortAttachment = async ({ attachment, name }, message = null) => {
 
     await axios.post(VM_URL, data)
       .then(async (response) => {
-        console.log("RESPONSE", response)
         const { error, message: responseMessage, imageName } = await response.data
 
         if (error) {
@@ -91,7 +120,7 @@ const distortAttachment = async ({ attachment, name }, message = null) => {
 
         setTimeout(function () {
           if (message) {
-            message.channel.send(`${VM_URL}${imageName}`)
+            downloadConverted(imageName, CONVERTED_MEDIA_DIR, message)
           }
         }, 1800)
       })
@@ -115,8 +144,7 @@ try {
     switch (content.toUpperCase()) {
       case 'SÃO ELES':
         randomFile(MEDIA_DIR, (error, file) => {
-          const attachment = new MessageAttachment(`${MEDIA_DIR}/${file}`)
-          channel.send(attachment)
+          sendAttachment(`${MEDIA_DIR}/${file}`, message)
         })
         break
 

@@ -64,3 +64,5 @@ node_modules
 # 3D Images
 *.3dm
 *.max
+
+*.mp4
