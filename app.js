@@ -123,8 +123,8 @@ try {
       case '!MANITOS HELP':
         message.channel.send(`
 ***Help***
-- Para **adicionar** uma imagem/vídeo ao bot basta reagir com o emote :manitos:
-- Para **distorcer** uma imagem basta reagir com o emote :distorted_hernans:
+- Para **adicionar** uma imagem/vídeo ao bot basta reagir com o emote <:manitos:857396162608234496>
+- Para **distorcer** uma imagem basta reagir com o emote <:distorted_hernans:878435263389515827>
 - Para **remover** uma imagem/vídeo do bot basta reagir com :x: (necessário 5 pessoas)
 
 ***Reações do Bot***
