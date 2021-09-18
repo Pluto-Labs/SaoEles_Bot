@@ -158,7 +158,7 @@ try {
         break
 
       case emojis.delete_action:
-        if (count && count >= 1) {
+        if (count && count >= 5) {
           const { attachments } = message
           attachments.forEach(attachment => {
             deleteAttachment(attachment, MEDIA_DIR, message)
