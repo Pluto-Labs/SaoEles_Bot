@@ -1,8 +1,9 @@
 const { Client, MessageAttachment, Message, Channel } = require('discord.js')
 const randomFile = require('select-random-file')
-const { v4 } = require('uuid')
+const getFolderSize = require('get-folder-size')
 const formData = require('form-data')
 const dotenv = require('dotenv')
+const { v4 } = require('uuid')
 const axios = require('axios')
 const https = require('https')
 const http = require('http')
@@ -130,6 +131,19 @@ const distortAttachment = async ({ attachment, name }, message = null) => {
   }
 }
 
+const getStatus = async (message = null) => {
+  await fs.readdir(MEDIA_DIR, async (err, files) => {
+    await getFolderSize(MEDIA_DIR, (err, size) => {
+      if (message) message.channel.send("```" + files.length + " Files - " + (size / 1024 / 1024).toFixed(2) + " MB ```")
+    })
+  })
+  await fs.readdir(CONVERTED_MEDIA_DIR, async (err, files) => {
+    await getFolderSize(CONVERTED_MEDIA_DIR, (err, size) => {
+      if (message) message.channel.send("```" + files.length + " Converted Files - " + (size / 1024 / 1024).toFixed(2) + " MB```")
+    })
+  })
+}
+
 try {
 
   client.login(BOT_TOKEN)
@@ -160,6 +174,10 @@ try {
 :warning: = houve um erro ao realizar algum processo
 :wastebasket: = imagem/vídeo removido do bot com sucesso
 :robot: = iniciado o processo de distorcer a imagem`)
+        break
+
+      case '!MANITOS STATUS':
+          getStatus(message)
         break
 
       default:
